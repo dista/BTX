@@ -1,4 +1,4 @@
 BTX
 ===
 
-a bt client
+a bt client, not started yet!!! 
