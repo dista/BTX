@@ -1,17 +1,15 @@
-#include <iostream>
+#include "MetaInfo.h"
+#include <string>
 
 using namespace std;
-
-int test(int& a)
-{
-    a = 20;
-}
+using namespace btx;
 
 int main(int argc, char* argv[])
 {
-    int s = 10;
+    string metafile_name("test/test.torrent");
+    MetaInfo mf(metafile_name);
 
-    test(s);
+    mf.parse();
 
-    cout << s << endl;
+    return 0;
 }

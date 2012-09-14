@@ -83,10 +83,13 @@ void MetaInfo::on_s_wait_determin(char* buffer, MetaInfoParseState& state, int& 
         case (int)'d':
             state = MI_DICT_WAIT_KEY;
             buffer_index++;
+            break;
         case (int)'i':
             state = MI_INT;
+            break;
         case (int)'l':
             state = MI_LIST;
+            break;
         default:
             if(is_number(buffer, buffer_index))
             {
