@@ -15,6 +15,17 @@ namespace btx
         string path;
     };
 
+    enum MetaInfoParseState
+    {
+        MI_WAIT_DETERMIN,
+        MI_DICT_WAIT_KEY,
+        MI_DICT_WAIT_VALUE,
+        MI_STRING,
+        MI_INT,
+        MI_LIST
+    };
+
+
     class MetaInfo
     {
         public:
@@ -32,7 +43,7 @@ namespace btx
             vector<MetaFile*>& get_meta_files();
 
         private:
-            const static int STATE_STACK_SIZE;
+            const static int STATE_STACK_SIZE = 10;
             bool parse_ok_;
             string meta_info_file_;
 
@@ -46,7 +57,7 @@ namespace btx
             
             string* prev_key_;
             int state_ptr_;
-            MetaInfoParseState state_stack_[STATE_STACK_SIZE];
+            MetaInfoParseState state_stack_[MetaInfo::STATE_STACK_SIZE];
 
 
             void on_s_list(char* buffer, MetaInfoParseState& state, int& buffer_index, int buffer_len);
@@ -55,18 +66,18 @@ namespace btx
             void on_s_int(char* buffer, MetaInfoParseState& state, int& buffer_index, int buffer_len);
             void determin_next_state(MetaInfoParseState& state);
             string* read_str(char* buffer, int& start, int size);
-            void skip(buffer_index, num);
+            inline void skip(int& buffer_index, int num);
             void on_s_dict(char* buffer, MetaInfoParseState& state, int& buffer_index, int buffer_len);
-            bool is_dict_end(char* buffer, int buffer_index);
-            bool is_list_end(char* buffer, int buffer_index);
-            bool is_int_end(char* buffer, int buffer_index);
-            bool is_colon(char* buffer, buffer_index);
+            inline bool is_dict_end(char* buffer, int buffer_index);
+            inline bool is_list_end(char* buffer, int buffer_index);
+            inline bool is_int_end(char* buffer, int buffer_index);
+            inline bool is_colon(char* buffer, int buffer_index);
             void push_state(MetaInfoParseState state);
             MetaInfoParseState pop_prev_state();
             MetaInfoParseState get_prev_state();
-            bool is_state_empty();
+            inline bool is_state_empty();
             int eat_number(char* buffer, int& buffer_index);
-            bool is_number(char* buffer, int buffer_index);
+            inline bool is_number(char* buffer, int buffer_index);
     };
 }
 

@@ -2,20 +2,9 @@
 #include "BtxException.h"
 #include <fstream>
 #include <iostream>
+#include <string.h>
 
 using namespace btx;
-
-MetaInfo::STATE_STACK_SIZE = 10;
-
-enum MetaInfoParseState
-{
-    MI_WAIT_DETERMIN,
-    MI_DICT_WAIT_KEY,
-    MI_DICT_WAIT_VALUE
-    MI_STRING,
-    MI_INT,
-    MI_LIST
-};
 
 void MetaInfo::parse()
 {
@@ -30,10 +19,16 @@ void MetaInfo::parse()
     fs.seekg(0, ios::end);
     int file_len = fs.tellg();
 
+    if(file_len > 1024 * 500)
+    {
+        throw BtxException("torrent file too large, we only support 500KB");
+    }
+
     fs.seekg(0, ios::beg);
 
     char* buffer = new char[file_len];
     fs.read(buffer, file_len);
+    fs.close();
 
     int idx = 0;
 
@@ -69,7 +64,7 @@ void MetaInfo::on_s_list(char* buffer, MetaInfoParseState& state, int& buffer_in
     if(is_list_end(buffer, buffer_index))
     {
         state = pop_prev_state();
-        skip(1);
+        skip(buffer_index, 1);
         return;
     }
     else
@@ -105,7 +100,7 @@ void MetaInfo::on_s_wait_determin(char* buffer, MetaInfoParseState& state, int& 
 
     if(state == MI_DICT_WAIT_KEY || state == MI_INT || state == MI_LIST)
     {
-        skip(1);
+        skip(buffer_index, 1);
     }
 }
 
@@ -118,7 +113,7 @@ void MetaInfo::on_s_string(char* buffer, MetaInfoParseState& state, int& buffer_
         throw BtxException("parse string error");
     }
 
-    skip(1);
+    skip(buffer_index, 1);
 
     if(buffer_index + str_len > buffer_len)
     {
@@ -149,14 +144,14 @@ void MetaInfo::on_s_int(char* buffer, MetaInfoParseState& state, int& buffer_ind
         throw BtxException("expect number end");
     }
 
-    skip(1);
+    skip(buffer_index, 1);
 
     determin_next_state(state);
 }
 
 void MetaInfo::determin_next_state(MetaInfoParseState& state)
 {
-    prev_state = pop_prev_state();
+    MetaInfoParseState prev_state = pop_prev_state();
 
     switch(prev_state)
     {
@@ -175,7 +170,7 @@ string* MetaInfo::read_str(char* buffer, int& start, int size)
 {
     char* buf = new char[size + 1];
     buf[size] = 0;
-    memcpy(buf, buffer, start, size);
+    memcpy(buf, buffer + start, size);
 
     string* s = new string(buf);
     delete buf;
@@ -195,7 +190,7 @@ void MetaInfo::on_s_dict(char* buffer, MetaInfoParseState& state, int& buffer_in
     {
         if(is_dict_end(buffer, buffer_index))
         {
-            skip(1);
+            skip(buffer_index, 1);
             state = pop_prev_state();
             return;
         }
@@ -210,23 +205,23 @@ void MetaInfo::on_s_dict(char* buffer, MetaInfoParseState& state, int& buffer_in
     }
     else
     {
-        on_s_wait_determin(buffer, s, buffer_index, buffer_len);
+        on_s_wait_determin(buffer, state, buffer_index, buffer_len);
     }
 }
 
 bool MetaInfo::is_dict_end(char* buffer, int buffer_index)
 {
-    return c == 'e';
+    return buffer[buffer_index] == 'e';
 }
 
 bool MetaInfo::is_list_end(char* buffer, int buffer_index)
 {
-    return c == 'e';
+    return buffer[buffer_index] == 'e';
 }
 
 bool MetaInfo::is_int_end(char* buffer, int buffer_index)
 {
-    return c == 'e';
+    return buffer[buffer_index] == 'e';
 }
 
 bool MetaInfo::is_colon(char* buffer, int buffer_index)
@@ -241,12 +236,12 @@ bool MetaInfo::is_colon(char* buffer, int buffer_index)
 
 void MetaInfo::push_state(MetaInfoParseState state)
 {
-    if(state_ptr == MetaInfo::STATE_STACK_SIZE)
+    if(state_ptr_ == MetaInfo::STATE_STACK_SIZE)
     {
         throw BtxException("nested too much");
     }
 
-    state_stack_[state_ptr++] = state;
+    state_stack_[state_ptr_++] = state;
 }
 
 MetaInfoParseState MetaInfo::pop_prev_state()
@@ -351,6 +346,6 @@ MetaInfo::~MetaInfo()
 
     if(prev_key_ != NULL)
     {
-        delete prev_key;
+        delete prev_key_;
     }
 }
